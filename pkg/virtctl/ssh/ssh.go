@@ -35,7 +35,6 @@ import (
 
 const (
 	portFlag, portFlagShort                         = "port", "p"
-	wrapLocalSSHFlag                                = "local-ssh"
 	usernameFlag, usernameFlagShort                 = "username", "l"
 	IdentityFilePathFlag, identityFilePathFlagShort = "identity-file", "i"
 	knownHostsFilePathFlag                          = "known-hosts"
@@ -48,7 +47,6 @@ func NewCommand(clientConfig clientcmd.ClientConfig) *cobra.Command {
 	c := &SSH{
 		clientConfig: clientConfig,
 		options:      DefaultSSHOptions(),
-		WrapLocalSSH: false,
 	}
 
 	cmd := &cobra.Command{
@@ -62,8 +60,6 @@ func NewCommand(clientConfig clientcmd.ClientConfig) *cobra.Command {
 	}
 
 	AddCommandlineArgs(cmd.Flags(), &c.options)
-	cmd.Flags().BoolVar(&c.WrapLocalSSH, wrapLocalSSHFlag, c.WrapLocalSSH,
-		fmt.Sprintf("--%s=true: Set this to true to use the SSH command available on your system by using this command as ProxyCommand; If unassigned, this will establish a SSH connection with limited capabilities provided by this client", wrapLocalSSHFlag))
 	cmd.SetUsageTemplate(templates.UsageTemplate())
 	return cmd
 }
@@ -80,7 +76,7 @@ func AddCommandlineArgs(flagset *pflag.FlagSet, opts *SSHOptions) {
 	flagset.StringVarP(&opts.Command, commandToExecute, commandToExecuteShort, opts.Command,
 		fmt.Sprintf(`--%s='ls /': Specify a command to execute the VM`, commandToExecute))
 	flagset.StringArrayVarP(&opts.AdditionalSSHLocalOptions, additionalOpts, additionalOptsShort, opts.AdditionalSSHLocalOptions,
-		fmt.Sprintf(`--%s="-o StrictHostKeyChecking=no" : Additional options to be passed to the local ssh. This is applied only if local-ssh=true `, commandToExecute))
+		fmt.Sprintf(`--%s="-o StrictHostKeyChecking=no" : Additional options to be passed to the local ssh.`, additionalOpts))
 }
 
 func DefaultSSHOptions() SSHOptions {
@@ -107,7 +103,6 @@ func DefaultSSHOptions() SSHOptions {
 type SSH struct {
 	clientConfig clientcmd.ClientConfig
 	options      SSHOptions
-	WrapLocalSSH bool
 }
 
 type SSHOptions struct {
@@ -127,19 +122,7 @@ func (o *SSH) Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if o.WrapLocalSSH {
-		return o.runLocalCommandClient(kind, namespace, name)
-	}
-
-	ssh := NativeSSHConnection{
-		ClientConfig: o.clientConfig,
-		Options:      o.options,
-	}
-	client, err := ssh.PrepareSSHClient(kind, namespace, name)
-	if err != nil {
-		return err
-	}
-	return ssh.StartSession(client)
+	return o.runLocalCommandClient(kind, namespace, name)
 }
 
 func PrepareCommand(cmd *cobra.Command, clientConfig clientcmd.ClientConfig, opts *SSHOptions, args []string) (kind, namespace, name string, err error) {
@@ -171,14 +154,10 @@ func usage() string {
   {{ProgramName}} ssh jdoe@vm/testvm.mynamespace [--%s]
 
   # Specify a username and namespace:
-  {{ProgramName}} ssh --namespace=mynamespace --%s=jdoe testvmi
- 
-  # Connect to 'testvmi' using the local ssh binary found in $PATH:
-  {{ProgramName}} ssh --%s=true jdoe@testvmi`,
+  {{ProgramName}} ssh --namespace=mynamespace --%s=jdoe testvmi","`,
 		IdentityFilePathFlag,
 		IdentityFilePathFlag,
 		usernameFlag,
-		wrapLocalSSHFlag,
 	)
 }
 
