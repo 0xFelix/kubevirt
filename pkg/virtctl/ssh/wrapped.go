@@ -48,6 +48,13 @@ func (o *SSH) buildSSHTarget(kind, namespace, name string) (opts []string) {
 	if o.options.IdentityFilePathProvided {
 		opts = append(opts, "-i", o.options.IdentityFilePath)
 	}
+
+	knownHostsFilePath := o.options.KnownHostsFilePath
+	if knownHostsFilePath != "" {
+		knownHostsFilePath = o.options.KnownHostsFilePathDefault
+	}
+	opts = append(opts, "-o", fmt.Sprintf("UserKnownHostsFile=%s", knownHostsFilePath))
+
 	if len(o.options.SshUsername) > 0 {
 		target.WriteString(o.options.SshUsername)
 		target.WriteRune('@')
