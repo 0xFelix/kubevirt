@@ -72,12 +72,8 @@ func (o *SCP) Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if o.options.WrapLocalSSH {
-		clientArgs := o.buildSCPTarget(local, remote, toRemote)
-		return ssh.RunLocalClient(remote.Kind, remote.Namespace, remote.Name, &o.options, clientArgs)
-	}
-
-	return o.nativeSCP(local, remote, toRemote)
+	clientArgs := o.buildSCPTarget(local, remote, toRemote)
+	return ssh.RunLocalClient(remote.Kind, remote.Namespace, remote.Name, &o.options, clientArgs)
 }
 
 func PrepareCommand(cmd *cobra.Command, clientConfig clientcmd.ClientConfig, opts *ssh.SSHOptions, args []string) (local templates.LocalSCPArgument, remote templates.RemoteSCPArgument, toRemote bool, err error) {
