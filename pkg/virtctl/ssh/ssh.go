@@ -77,8 +77,6 @@ func AddCommandlineArgs(flagset *pflag.FlagSet, opts *SSHOptions) {
 		fmt.Sprintf(`--%s=22: Specify a port on the VM to send SSH traffic to`, portFlag))
 	flagset.StringArrayVarP(&opts.AdditionalSSHLocalOptions, additionalOpts, additionalOptsShort, opts.AdditionalSSHLocalOptions,
 		fmt.Sprintf(`--%s="-o StrictHostKeyChecking=no" : Additional options to be passed to the local ssh. This is applied only if local-ssh=true `, commandToExecute))
-	flagset.BoolVar(&opts.WrapLocalSSH, wrapLocalSSHFlag, opts.WrapLocalSSH,
-		fmt.Sprintf("--%s=true: Set this to true to use the SSH/SCP client available on your system by using this command as ProxyCommand; If set to false, this will establish a SSH/SCP connection with limited capabilities provided by this client", wrapLocalSSHFlag))
 }
 
 func DefaultSSHOptions() SSHOptions {
@@ -94,7 +92,6 @@ func DefaultSSHOptions() SSHOptions {
 		KnownHostsFilePath:        "",
 		KnownHostsFilePathDefault: "",
 		AdditionalSSHLocalOptions: []string{},
-		WrapLocalSSH:              false,
 		LocalClientName:           "ssh",
 	}
 
@@ -118,7 +115,6 @@ type SSHOptions struct {
 	KnownHostsFilePath        string
 	KnownHostsFilePathDefault string
 	AdditionalSSHLocalOptions []string
-	WrapLocalSSH              bool
 	LocalClientName           string
 }
 
@@ -128,12 +124,8 @@ func (o *SSH) Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if o.options.WrapLocalSSH {
-		clientArgs := o.buildSSHTarget(kind, namespace, name)
-		return RunLocalClient(kind, namespace, name, &o.options, clientArgs)
-	}
-
-	return o.nativeSSH(kind, namespace, name)
+	clientArgs := o.buildSSHTarget(kind, namespace, name)
+	return RunLocalClient(kind, namespace, name, &o.options, clientArgs)
 }
 
 func PrepareCommand(cmd *cobra.Command, clientConfig clientcmd.ClientConfig, opts *SSHOptions, args []string) (kind, namespace, name string, err error) {

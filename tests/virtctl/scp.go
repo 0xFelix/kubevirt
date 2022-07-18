@@ -25,26 +25,9 @@ var _ = Describe("[sig-compute][virtctl]SCP", func() {
 	var keyFile string
 	var virtClient kubecli.KubevirtClient
 
-	copyNative := func(src, dst string, recursive bool) {
-		args := []string{
-			"scp",
-			"--namespace", util.NamespaceTestDefault,
-			"--username", "cirros",
-			"--identity-file", keyFile,
-			"--known-hosts=",
-		}
-		if recursive {
-			args = append(args, "--recursive")
-		}
-		args = append(args, src, dst)
-
-		Expect(clientcmd.NewRepeatableVirtctlCommand(args...)()).To(Succeed())
-	}
-
 	copyLocal := func(src, dst string, recursive bool) {
 		args := []string{
 			"scp",
-			"--local-ssh=true",
 			"--namespace", util.NamespaceTestDefault,
 			"--username", "cirros",
 			"--identity-file", keyFile,
@@ -97,7 +80,6 @@ var _ = Describe("[sig-compute][virtctl]SCP", func() {
 		By("comparing the two files")
 		compareFile(keyFile, copyBackFile)
 	},
-		Entry("using the native scp method", copyNative),
 		Entry("using the local scp method", copyLocal),
 	)
 
@@ -128,7 +110,6 @@ var _ = Describe("[sig-compute][virtctl]SCP", func() {
 		compareFile(filepath.Join(copyFromDir, "file1"), filepath.Join(copyToDir, "file1"))
 		compareFile(filepath.Join(copyFromDir, "file2"), filepath.Join(copyToDir, "file2"))
 	},
-		Entry("using the native scp method", copyNative),
 		Entry("using the local scp method", copyLocal),
 	)
 })

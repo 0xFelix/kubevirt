@@ -23,22 +23,9 @@ var _ = Describe("[sig-compute][virtctl]SSH", func() {
 	var keyFile string
 	var virtClient kubecli.KubevirtClient
 
-	cmdNative := func(vmiName string) {
-		Expect(clientcmd.NewRepeatableVirtctlCommand(
-			"ssh",
-			"--local-ssh=false",
-			"--namespace", util.NamespaceTestDefault,
-			"--username", "cirros",
-			"--identity-file", keyFile,
-			"--known-hosts=",
-			`--command='true'`,
-			vmiName)()).To(Succeed())
-	}
-
 	cmdLocal := func(vmiName string) {
 		_, cmd, err := clientcmd.CreateCommandWithNS(util.NamespaceTestDefault, "virtctl",
 			"ssh",
-			"--local-ssh=true",
 			"--namespace", util.NamespaceTestDefault,
 			"--username", "cirros",
 			"--identity-file", keyFile,
@@ -78,7 +65,6 @@ var _ = Describe("[sig-compute][virtctl]SSH", func() {
 		By("ssh into the VM")
 		cmdFn(vmi.Name)
 	},
-		Entry("using the native ssh method", cmdNative),
 		Entry("using the local ssh method", cmdLocal),
 	)
 })
