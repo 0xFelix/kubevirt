@@ -6,6 +6,7 @@ go_library(
         "cloudinit.go",
         "cpu.go",
         "factory.go",
+        "memory.go",
         "network.go",
         "status.go",
         "storage.go",
