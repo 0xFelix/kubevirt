@@ -794,6 +794,13 @@ rules:
   verbs:
   - update
 - apiGroups:
+  - subresources.kubevirt.io
+  nonResourceURLs:
+  - /api/subresources.kubevirt.io/v1/expand-spec
+  - /api/subresources.kubevirt.io/v1alpha3/expand-spec
+  verbs:
+  - put
+- apiGroups:
   - kubevirt.io
   resources:
   - virtualmachines
@@ -899,6 +906,13 @@ rules:
   verbs:
   - update
 - apiGroups:
+  - subresources.kubevirt.io
+  nonResourceURLs:
+  - /api/subresources.kubevirt.io/v1/expand-spec
+  - /api/subresources.kubevirt.io/v1alpha3/expand-spec
+  verbs:
+  - put
+- apiGroups:
   - kubevirt.io
   resources:
   - virtualmachines
@@ -978,6 +992,13 @@ rules:
   - virtualmachineinstances/userlist
   verbs:
   - get
+- apiGroups:
+  - subresources.kubevirt.io
+  nonResourceURLs:
+  - /api/subresources.kubevirt.io/v1/expand-spec
+  - /api/subresources.kubevirt.io/v1alpha3/expand-spec
+  verbs:
+  - put
 - apiGroups:
   - kubevirt.io
   resources:

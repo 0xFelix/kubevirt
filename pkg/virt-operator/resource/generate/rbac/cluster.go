@@ -31,14 +31,16 @@ import (
 )
 
 const (
-	GroupNameSubresources  = "subresources.kubevirt.io"
-	GroupNameSnapshot      = "snapshot.kubevirt.io"
-	GroupNameInstancetype  = "instancetype.kubevirt.io"
-	GroupNamePool          = "pool.kubevirt.io"
-	NameDefault            = "kubevirt.io:default"
-	VMInstancesGuestOSInfo = "virtualmachineinstances/guestosinfo"
-	VMInstancesFileSysList = "virtualmachineinstances/filesystemlist"
-	VMInstancesUserList    = "virtualmachineinstances/userlist"
+	GroupNameSubresources   = "subresources.kubevirt.io"
+	GroupNameSnapshot       = "snapshot.kubevirt.io"
+	GroupNameInstancetype   = "instancetype.kubevirt.io"
+	GroupNamePool           = "pool.kubevirt.io"
+	NameDefault             = "kubevirt.io:default"
+	VMInstancesGuestOSInfo  = "virtualmachineinstances/guestosinfo"
+	VMInstancesFileSysList  = "virtualmachineinstances/filesystemlist"
+	VMInstancesUserList     = "virtualmachineinstances/userlist"
+	VMExpandSpecURLV1       = "/api/subresources.kubevirt.io/v1/expand-spec"
+	VMExpandSpecURLV1Alpha3 = "/api/subresources.kubevirt.io/v1alpha3/expand-spec"
 )
 
 func GetAllCluster() []runtime.Object {
@@ -186,6 +188,18 @@ func newAdminClusterRole() *rbacv1.ClusterRole {
 			},
 			{
 				APIGroups: []string{
+					GroupNameSubresources,
+				},
+				NonResourceURLs: []string{
+					VMExpandSpecURLV1,
+					VMExpandSpecURLV1Alpha3,
+				},
+				Verbs: []string{
+					"put",
+				},
+			},
+			{
+				APIGroups: []string{
 					GroupName,
 				},
 				Resources: []string{
@@ -319,6 +333,18 @@ func newEditClusterRole() *rbacv1.ClusterRole {
 			},
 			{
 				APIGroups: []string{
+					GroupNameSubresources,
+				},
+				NonResourceURLs: []string{
+					VMExpandSpecURLV1,
+					VMExpandSpecURLV1Alpha3,
+				},
+				Verbs: []string{
+					"put",
+				},
+			},
+			{
+				APIGroups: []string{
 					GroupName,
 				},
 				Resources: []string{
@@ -421,6 +447,18 @@ func newViewClusterRole() *rbacv1.ClusterRole {
 				},
 				Verbs: []string{
 					"get",
+				},
+			},
+			{
+				APIGroups: []string{
+					GroupNameSubresources,
+				},
+				NonResourceURLs: []string{
+					VMExpandSpecURLV1,
+					VMExpandSpecURLV1Alpha3,
+				},
+				Verbs: []string{
+					"put",
 				},
 			},
 			{
