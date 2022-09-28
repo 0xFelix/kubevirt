@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
+	authv1 "k8s.io/api/authorization/v1"
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,8 +29,10 @@ import (
 
 type Methods interface {
 	FindInstancetypeSpec(vm *virtv1.VirtualMachine) (*instancetypev1alpha2.VirtualMachineInstancetypeSpec, error)
-	ApplyToVmi(field *k8sfield.Path, instancetypespec *instancetypev1alpha2.VirtualMachineInstancetypeSpec, prefernceSpec *instancetypev1alpha2.VirtualMachinePreferenceSpec, vmiSpec *virtv1.VirtualMachineInstanceSpec) Conflicts
+	FindInstancetypeResourceAttributes(vm *virtv1.VirtualMachine, verb string) (*authv1.ResourceAttributes, error)
+	ApplyToVmi(field *k8sfield.Path, instancetypespec *instancetypev1alpha2.VirtualMachineInstancetypeSpec, preferenceSpec *instancetypev1alpha2.VirtualMachinePreferenceSpec, vmiSpec *virtv1.VirtualMachineInstanceSpec) Conflicts
 	FindPreferenceSpec(vm *virtv1.VirtualMachine) (*instancetypev1alpha2.VirtualMachinePreferenceSpec, error)
+	FindPreferenceResourceAttributes(vm *virtv1.VirtualMachine, verb string) (*authv1.ResourceAttributes, error)
 	StoreControllerRevisions(vm *virtv1.VirtualMachine) error
 }
 
@@ -399,6 +402,46 @@ func (m *methods) FindPreferenceSpec(vm *virtv1.VirtualMachine) (*instancetypev1
 	}
 }
 
+func (m *methods) FindPreferenceResourceAttributes(vm *virtv1.VirtualMachine, verb string) (*authv1.ResourceAttributes, error) {
+	if vm.Spec.Preference == nil {
+		return nil, nil
+	}
+
+	switch strings.ToLower(vm.Spec.Preference.Kind) {
+	case apiinstancetype.SingularPreferenceResourceName, apiinstancetype.PluralPreferenceResourceName:
+		preference, err := m.findPreference(vm)
+		if err != nil {
+			return nil, err
+		}
+		gvk := preference.GroupVersionKind()
+		return &authv1.ResourceAttributes{
+			Verb:      verb,
+			Group:     gvk.Group,
+			Version:   gvk.Version,
+			Resource:  strings.ToLower(gvk.Kind),
+			Namespace: preference.Namespace,
+			Name:      preference.Name,
+		}, nil
+
+	case apiinstancetype.ClusterSingularPreferenceResourceName, apiinstancetype.ClusterPluralPreferenceResourceName:
+		clusterPreference, err := m.findClusterPreference(vm)
+		if err != nil {
+			return nil, err
+		}
+		gvk := clusterPreference.GroupVersionKind()
+		return &authv1.ResourceAttributes{
+			Verb:     verb,
+			Group:    gvk.Group,
+			Version:  gvk.Version,
+			Resource: strings.ToLower(gvk.Kind),
+			Name:     clusterPreference.Name,
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("got unexpected kind in PreferenceMatcher: %s", vm.Spec.Preference.Kind)
+	}
+}
+
 func (m *methods) getPreferenceSpecRevision(revisionName string, namespace string) (*instancetypev1alpha2.VirtualMachinePreferenceSpec, error) {
 	revision, err := m.clientset.AppsV1().ControllerRevisions(namespace).Get(context.Background(), revisionName, metav1.GetOptions{})
 	if err != nil {
@@ -469,6 +512,46 @@ func (m *methods) FindInstancetypeSpec(vm *virtv1.VirtualMachine) (*instancetype
 			return nil, err
 		}
 		return &clusterInstancetype.Spec, nil
+
+	default:
+		return nil, fmt.Errorf("got unexpected kind in InstancetypeMatcher: %s", vm.Spec.Instancetype.Kind)
+	}
+}
+
+func (m *methods) FindInstancetypeResourceAttributes(vm *virtv1.VirtualMachine, verb string) (resourceAttributes *authv1.ResourceAttributes, err error) {
+	if vm.Spec.Instancetype == nil {
+		return nil, nil
+	}
+
+	switch strings.ToLower(vm.Spec.Instancetype.Kind) {
+	case apiinstancetype.SingularResourceName, apiinstancetype.PluralResourceName:
+		instancetype, err := m.findInstancetype(vm)
+		if err != nil {
+			return nil, err
+		}
+		gvk := instancetype.GroupVersionKind()
+		return &authv1.ResourceAttributes{
+			Verb:      verb,
+			Group:     gvk.Group,
+			Version:   gvk.Version,
+			Resource:  strings.ToLower(gvk.Kind),
+			Namespace: instancetype.Namespace,
+			Name:      instancetype.Name,
+		}, nil
+
+	case apiinstancetype.ClusterSingularResourceName, apiinstancetype.ClusterPluralResourceName, "":
+		clusterInstancetype, err := m.findClusterInstancetype(vm)
+		if err != nil {
+			return nil, err
+		}
+		gvk := clusterInstancetype.GroupVersionKind()
+		return &authv1.ResourceAttributes{
+			Verb:     verb,
+			Group:    gvk.Group,
+			Version:  gvk.Version,
+			Resource: strings.ToLower(gvk.Kind),
+			Name:     clusterInstancetype.Name,
+		}, nil
 
 	default:
 		return nil, fmt.Errorf("got unexpected kind in InstancetypeMatcher: %s", vm.Spec.Instancetype.Kind)

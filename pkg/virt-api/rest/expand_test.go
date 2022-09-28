@@ -7,16 +7,21 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 
 	"github.com/emicklei/go-restful"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	authv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8sfield "k8s.io/apimachinery/pkg/util/validation/field"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/testing"
 
 	kubevirtcore "kubevirt.io/api/core"
 	v1 "kubevirt.io/api/core/v1"
@@ -28,15 +33,25 @@ import (
 	"kubevirt.io/kubevirt/pkg/testutils"
 )
 
+type prepareFn func() (schema.GroupVersionKind, string, string)
+
 var _ = Describe("Instancetype expansion subresources", func() {
 	const (
-		vmName      = "test-vm"
-		vmNamespace = "test-namespace"
+		vmName                    = "test-vm"
+		vmNamespace               = "test-vm-namespace"
+		vmInstancetypeName        = "test-instancetype"
+		vmInstancetypeNamespace   = "test-instancetype-namespace"
+		vmPreferenceName          = "test-preference"
+		vmPreferenceNamespace     = "test-preference-namespace"
+		vmClusterInstancetypeName = "test-cluster-instancetype"
+		vmClusterPreferenceName   = "test-cluster-preference"
 	)
 
 	var (
 		vmClient            *kubecli.MockVirtualMachineInterface
 		virtClient          *kubecli.MockKubevirtClient
+		kubeClient          *k8sfake.Clientset
+		sarHandler          func(sar *authv1.SubjectAccessReview) (*authv1.SubjectAccessReview, error)
 		instancetypeMethods *testutils.MockInstancetypeMethods
 		app                 *SubresourceAPIApp
 
@@ -45,14 +60,35 @@ var _ = Describe("Instancetype expansion subresources", func() {
 		response *restful.Response
 
 		vm *v1.VirtualMachine
+
+		vmInstancetypeGvk        = instancetypev1alpha2.SchemeGroupVersion.WithKind("VirtualMachineInstancetype")
+		vmPreferenceGvk          = instancetypev1alpha2.SchemeGroupVersion.WithKind("VirtualMachinePreference")
+		vmClusterInstancetypeGvk = instancetypev1alpha2.SchemeGroupVersion.WithKind("VirtualMachineClusterInstancetype")
+		vmClusterPreferenceGvk   = instancetypev1alpha2.SchemeGroupVersion.WithKind("VirtualMachineClusterPreference")
 	)
 
 	BeforeEach(func() {
 		ctrl := gomock.NewController(GinkgoT())
 		vmClient = kubecli.NewMockVirtualMachineInterface(ctrl)
 		virtClient = kubecli.NewMockKubevirtClient(ctrl)
+		kubeClient = k8sfake.NewSimpleClientset()
 		virtClient.EXPECT().GeneratedKubeVirtClient().Return(fake.NewSimpleClientset()).AnyTimes()
 		virtClient.EXPECT().VirtualMachine(vmNamespace).Return(vmClient).AnyTimes()
+		virtClient.EXPECT().AuthorizationV1().Return(kubeClient.AuthorizationV1()).AnyTimes()
+
+		sarHandler = func(sar *authv1.SubjectAccessReview) (*authv1.SubjectAccessReview, error) {
+			panic("unexpected call to sarHandler")
+		}
+
+		kubeClient.Fake.PrependReactor("create", "subjectaccessreviews", func(action testing.Action) (handled bool, ret runtime.Object, err error) {
+			create, ok := action.(testing.CreateAction)
+			Expect(ok).To(BeTrue())
+			sar, ok := create.GetObject().(*authv1.SubjectAccessReview)
+			Expect(ok).To(BeTrue())
+
+			sarOut, err := sarHandler(sar)
+			return true, sarOut, err
+		})
 
 		instancetypeMethods = testutils.NewMockInstancetypeMethods()
 
@@ -60,6 +96,11 @@ var _ = Describe("Instancetype expansion subresources", func() {
 		app.instancetypeMethods = instancetypeMethods
 
 		request = restful.NewRequest(&http.Request{})
+		request.Request.URL = &url.URL{}
+		request.Request.Header = make(map[string][]string)
+		request.Request.Header[userHeader] = []string{"user"}
+		request.Request.Header[groupHeader] = []string{"userGroup"}
+
 		recorder = httptest.NewRecorder()
 		response = restful.NewResponse(recorder)
 		response.SetRequestAccepts(restful.MIME_JSON)
@@ -80,9 +121,45 @@ var _ = Describe("Instancetype expansion subresources", func() {
 		}
 	})
 
+	findResourceAttributesFn := func(gvk schema.GroupVersionKind, namespace, name string) func(*v1.VirtualMachine, string) (*authv1.ResourceAttributes, error) {
+		return func(_ *v1.VirtualMachine, verb string) (*authv1.ResourceAttributes, error) {
+			Expect(verb).To(Equal("get"))
+			resourceAttributes := &authv1.ResourceAttributes{
+				Verb:     verb,
+				Group:    gvk.Group,
+				Version:  gvk.Version,
+				Resource: strings.ToLower(gvk.Kind),
+				Name:     name,
+			}
+			if namespace != "" {
+				resourceAttributes.Namespace = namespace
+			}
+			return resourceAttributes, nil
+		}
+	}
+
+	sarHandlerFn := func(gvk schema.GroupVersionKind, namespace, name string, allowed bool) func(sar *authv1.SubjectAccessReview) (*authv1.SubjectAccessReview, error) {
+		return func(sar *authv1.SubjectAccessReview) (*authv1.SubjectAccessReview, error) {
+			Expect(sar.Spec.NonResourceAttributes).To(BeNil())
+			Expect(sar.Spec.ResourceAttributes).ToNot(BeNil())
+			Expect(sar.Spec.ResourceAttributes.Verb).To(Equal("get"))
+			Expect(sar.Spec.ResourceAttributes.Group).To(Equal(gvk.Group))
+			Expect(sar.Spec.ResourceAttributes.Version).To(Equal(gvk.Version))
+			Expect(sar.Spec.ResourceAttributes.Resource).To(Equal(strings.ToLower(gvk.Kind)))
+			Expect(sar.Spec.ResourceAttributes.Name).To(Equal(name))
+			if namespace != "" {
+				Expect(sar.Spec.ResourceAttributes.Namespace).To(Equal(namespace))
+			}
+			sar.Status.Allowed = allowed
+			sar.Status.Reason = "because I said so"
+			return sar, nil
+		}
+	}
+
 	testCommonFunctionality := func(callExpandSpecApi func(vm *v1.VirtualMachine) *httptest.ResponseRecorder, expectedStatusError int) {
 		It("should return unchanged VM, if no instancetype and preference is assigned", func() {
 			vm.Spec.Instancetype = nil
+			vm.Spec.Preference = nil
 
 			recorder := callExpandSpecApi(vm)
 			Expect(recorder.Code).To(Equal(http.StatusOK))
@@ -93,7 +170,7 @@ var _ = Describe("Instancetype expansion subresources", func() {
 		})
 
 		It("should fail if VM points to nonexistent instancetype", func() {
-			instancetypeMethods.FindInstancetypeSpecFunc = func(_ *v1.VirtualMachine) (*instancetypev1alpha2.VirtualMachineInstancetypeSpec, error) {
+			instancetypeMethods.FindInstancetypeResourceAttributesFunc = func(_ *v1.VirtualMachine, _ string) (*authv1.ResourceAttributes, error) {
 				return nil, fmt.Errorf("instancetype does not exist")
 			}
 
@@ -106,7 +183,7 @@ var _ = Describe("Instancetype expansion subresources", func() {
 		})
 
 		It("should fail if VM points to nonexistent preference", func() {
-			instancetypeMethods.FindPreferenceSpecFunc = func(_ *v1.VirtualMachine) (*instancetypev1alpha2.VirtualMachinePreferenceSpec, error) {
+			instancetypeMethods.FindPreferenceResourceAttributesFunc = func(_ *v1.VirtualMachine, _ string) (*authv1.ResourceAttributes, error) {
 				return nil, fmt.Errorf("preference does not exist")
 			}
 
@@ -118,7 +195,12 @@ var _ = Describe("Instancetype expansion subresources", func() {
 			_ = ExpectStatusErrorWithCode(recorder, expectedStatusError)
 		})
 
-		It("should apply instancetype to VM", func() {
+		DescribeTable("should apply instancetype to VM", func(prepare prepareFn) {
+			// Allow access to instancetype
+			gvk, namespace, name := prepare()
+			instancetypeMethods.FindInstancetypeResourceAttributesFunc = findResourceAttributesFn(gvk, namespace, name)
+			sarHandler = sarHandlerFn(gvk, namespace, name, true)
+
 			instancetypeMethods.FindInstancetypeSpecFunc = func(_ *v1.VirtualMachine) (*instancetypev1alpha2.VirtualMachineInstancetypeSpec, error) {
 				return &instancetypev1alpha2.VirtualMachineInstancetypeSpec{}, nil
 			}
@@ -142,9 +224,21 @@ var _ = Describe("Instancetype expansion subresources", func() {
 			Expect(json.NewDecoder(recorder.Body).Decode(responseVm)).To(Succeed())
 
 			Expect(responseVm.Spec.Template.Spec).To(Equal(expectedVm.Spec.Template.Spec))
-		})
+		},
+			Entry("namespaced", func() (schema.GroupVersionKind, string, string) {
+				return vmInstancetypeGvk, vmInstancetypeNamespace, vmInstancetypeName
+			}),
+			Entry("cluster-wide", func() (schema.GroupVersionKind, string, string) {
+				return vmClusterInstancetypeGvk, "", vmClusterInstancetypeName
+			}),
+		)
 
-		It("should apply preference to VM", func() {
+		DescribeTable("should apply preference to VM", func(prepare prepareFn) {
+			// Allow access to preference
+			gvk, namespace, name := prepare()
+			instancetypeMethods.FindPreferenceResourceAttributesFunc = findResourceAttributesFn(gvk, namespace, name)
+			sarHandler = sarHandlerFn(gvk, namespace, name, true)
+
 			instancetypeMethods.FindPreferenceSpecFunc = func(_ *v1.VirtualMachine) (*instancetypev1alpha2.VirtualMachinePreferenceSpec, error) {
 				return &instancetypev1alpha2.VirtualMachinePreferenceSpec{}, nil
 			}
@@ -167,7 +261,14 @@ var _ = Describe("Instancetype expansion subresources", func() {
 			Expect(json.NewDecoder(recorder.Body).Decode(responseVm)).To(Succeed())
 
 			Expect(responseVm.Spec.Template.Spec).To(Equal(expectedVm.Spec.Template.Spec))
-		})
+		},
+			Entry("namespaced", func() (schema.GroupVersionKind, string, string) {
+				return vmPreferenceGvk, vmPreferenceNamespace, vmPreferenceName
+			}),
+			Entry("cluster-wide", func() (schema.GroupVersionKind, string, string) {
+				return vmClusterPreferenceGvk, "", vmClusterPreferenceName
+			}),
+		)
 
 		It("should fail, if there is a conflict when applying instancetype", func() {
 			instancetypeMethods.FindInstancetypeSpecFunc = func(_ *v1.VirtualMachine) (*instancetypev1alpha2.VirtualMachineInstancetypeSpec, error) {
@@ -182,6 +283,48 @@ var _ = Describe("Instancetype expansion subresources", func() {
 
 			_ = ExpectStatusErrorWithCode(recorder, expectedStatusError)
 		})
+
+		DescribeTable("should fail if access is denied to", func(prepare prepareFn) {
+			gvk, namespace, name := prepare()
+			sarHandler = sarHandlerFn(gvk, namespace, name, false)
+
+			recorder := callExpandSpecApi(vm)
+
+			_ = ExpectStatusErrorWithCode(recorder, http.StatusUnauthorized)
+		},
+			Entry("namespaced instancetype", func() (schema.GroupVersionKind, string, string) {
+				instancetypeMethods.FindInstancetypeResourceAttributesFunc = findResourceAttributesFn(vmInstancetypeGvk, vmInstancetypeNamespace, vmInstancetypeName)
+				vm.Spec.Instancetype = &v1.InstancetypeMatcher{
+					Name: vmInstancetypeName,
+					Kind: vmInstancetypeGvk.Kind,
+				}
+				return vmInstancetypeGvk, vmInstancetypeNamespace, vmInstancetypeName
+			}),
+			Entry("cluster-wide instancetype", func() (schema.GroupVersionKind, string, string) {
+				instancetypeMethods.FindInstancetypeResourceAttributesFunc = findResourceAttributesFn(vmClusterInstancetypeGvk, "", vmClusterInstancetypeName)
+				vm.Spec.Instancetype = &v1.InstancetypeMatcher{
+					Name: vmClusterInstancetypeName,
+					Kind: vmClusterInstancetypeGvk.Kind,
+				}
+				return vmClusterInstancetypeGvk, "", vmClusterInstancetypeName
+			}),
+			Entry("namespaced preference", func() (schema.GroupVersionKind, string, string) {
+				instancetypeMethods.FindPreferenceResourceAttributesFunc = findResourceAttributesFn(vmPreferenceGvk, vmPreferenceNamespace, vmPreferenceName)
+				vm.Spec.Preference = &v1.PreferenceMatcher{
+					Name: vmPreferenceName,
+					Kind: vmPreferenceGvk.Kind,
+				}
+				return vmPreferenceGvk, vmPreferenceNamespace, vmPreferenceName
+			}),
+			Entry("cluster-wide preference", func() (schema.GroupVersionKind, string, string) {
+				instancetypeMethods.FindPreferenceResourceAttributesFunc = findResourceAttributesFn(vmClusterPreferenceGvk, "", vmClusterPreferenceName)
+				vm.Spec.Preference = &v1.PreferenceMatcher{
+					Name: vmClusterPreferenceName,
+					Kind: vmClusterPreferenceGvk.Kind,
+				}
+				return vmClusterPreferenceGvk, "", vmClusterPreferenceName
+			}),
+		)
 	}
 
 	Context("VirtualMachine expand-spec endpoint", func() {

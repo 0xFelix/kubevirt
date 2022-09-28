@@ -13,7 +13,6 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/log"
 
-	"kubevirt.io/kubevirt/pkg/instancetype"
 	"kubevirt.io/kubevirt/pkg/virt-api/definitions"
 )
 
@@ -49,9 +48,9 @@ func (app *SubresourceAPIApp) ExpandSpecRequestHandler(request *restful.Request,
 		return
 	}
 
-	expandSpecResponse(vm, app.instancetypeMethods, func(err error) *errors.StatusError {
+	app.expandSpecResponse(vm, request, response, func(err error) *errors.StatusError {
 		return errors.NewBadRequest(err.Error())
-	}, response)
+	})
 }
 
 func (app *SubresourceAPIApp) ExpandSpecVMRequestHandler(request *restful.Request, response *restful.Response) {
@@ -64,16 +63,60 @@ func (app *SubresourceAPIApp) ExpandSpecVMRequestHandler(request *restful.Reques
 		return
 	}
 
-	expandSpecResponse(vm, app.instancetypeMethods, errors.NewInternalError, response)
+	app.expandSpecResponse(vm, request, response, errors.NewInternalError)
 }
 
-func expandSpecResponse(vm *v1.VirtualMachine, instancetypeMethods instancetype.Methods, errorFunc func(error) *errors.StatusError, response *restful.Response) {
-	instancetypeSpec, err := instancetypeMethods.FindInstancetypeSpec(vm)
+func (app *SubresourceAPIApp) expandSpecResponse(vm *v1.VirtualMachine, request *restful.Request, response *restful.Response, errorFunc func(error) *errors.StatusError) {
+	authorizer := NewAuthorizorFromClient(app.virtCli.AuthorizationV1().SubjectAccessReviews())
+	sar, err := authorizer.NewSubjectAccessReview(request)
+	if err != nil {
+		writeError(errors.NewInternalError(err), response)
+		return
+	}
+
+	instancetypeResourceAttributes, err := app.instancetypeMethods.FindInstancetypeResourceAttributes(vm, "get")
 	if err != nil {
 		writeError(errorFunc(err), response)
 		return
 	}
-	preferenceSpec, err := instancetypeMethods.FindPreferenceSpec(vm)
+	if instancetypeResourceAttributes != nil {
+		sar.Spec.ResourceAttributes = instancetypeResourceAttributes
+		result, err := authorizer.CreateSubjectAccessReview(sar)
+		if err != nil {
+			writeError(errors.NewInternalError(err), response)
+			return
+		}
+		if !result.Status.Allowed {
+			writeError(errors.NewUnauthorized(result.Status.Reason), response)
+			return
+		}
+	}
+
+	instancetypeSpec, err := app.instancetypeMethods.FindInstancetypeSpec(vm)
+	if err != nil {
+		writeError(errorFunc(err), response)
+		return
+	}
+
+	preferenceResourceAttributes, err := app.instancetypeMethods.FindPreferenceResourceAttributes(vm, "get")
+	if err != nil {
+		writeError(errorFunc(err), response)
+		return
+	}
+	if preferenceResourceAttributes != nil {
+		sar.Spec.ResourceAttributes = preferenceResourceAttributes
+		result, err := authorizer.CreateSubjectAccessReview(sar)
+		if err != nil {
+			writeError(errors.NewInternalError(err), response)
+			return
+		}
+		if !result.Status.Allowed {
+			writeError(errors.NewUnauthorized(result.Status.Reason), response)
+			return
+		}
+	}
+
+	preferenceSpec, err := app.instancetypeMethods.FindPreferenceSpec(vm)
 	if err != nil {
 		writeError(errorFunc(err), response)
 		return
@@ -87,7 +130,7 @@ func expandSpecResponse(vm *v1.VirtualMachine, instancetypeMethods instancetype.
 		return
 	}
 
-	conflicts := instancetypeMethods.ApplyToVmi(field.NewPath("spec", "template", "spec"), instancetypeSpec, preferenceSpec, &vm.Spec.Template.Spec)
+	conflicts := app.instancetypeMethods.ApplyToVmi(field.NewPath("spec", "template", "spec"), instancetypeSpec, preferenceSpec, &vm.Spec.Template.Spec)
 	if len(conflicts) > 0 {
 		writeError(errorFunc(fmt.Errorf("cannot expand instancetype to VM")), response)
 		return
