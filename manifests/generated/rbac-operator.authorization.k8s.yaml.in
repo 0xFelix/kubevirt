@@ -793,9 +793,7 @@ rules:
   - virtualmachines/memorydump
   verbs:
   - update
-- apiGroups:
-  - subresources.kubevirt.io
-  nonResourceURLs:
+- nonResourceURLs:
   - /api/subresources.kubevirt.io/v1/expand-spec
   - /api/subresources.kubevirt.io/v1alpha3/expand-spec
   verbs:
@@ -905,9 +903,7 @@ rules:
   - virtualmachines/memorydump
   verbs:
   - update
-- apiGroups:
-  - subresources.kubevirt.io
-  nonResourceURLs:
+- nonResourceURLs:
   - /api/subresources.kubevirt.io/v1/expand-spec
   - /api/subresources.kubevirt.io/v1alpha3/expand-spec
   verbs:
@@ -992,9 +988,7 @@ rules:
   - virtualmachineinstances/userlist
   verbs:
   - get
-- apiGroups:
-  - subresources.kubevirt.io
-  nonResourceURLs:
+- nonResourceURLs:
   - /api/subresources.kubevirt.io/v1/expand-spec
   - /api/subresources.kubevirt.io/v1alpha3/expand-spec
   verbs:

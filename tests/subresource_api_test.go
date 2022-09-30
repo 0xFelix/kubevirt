@@ -20,9 +20,13 @@
 package tests_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"time"
+
+	"sigs.k8s.io/yaml"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -80,7 +84,7 @@ var _ = Describe("[sig-compute]Subresource Api", func() {
 		})
 	})
 
-	Describe("[rfe_id:1195][crit:medium][vendor:cnv-qe@redhat.com][level:component] Rbac Authorization For Version Command", func() {
+	FDescribe("[rfe_id:1195][crit:medium][vendor:cnv-qe@redhat.com][level:component] Rbac Authorization For Version Command", func() {
 		resource := "version"
 
 		Context("with authenticated user", func() {
@@ -95,7 +99,7 @@ var _ = Describe("[sig-compute]Subresource Api", func() {
 		})
 	})
 
-	Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component] Rbac Authorization For Guestfs Command", func() {
+	FDescribe("[crit:medium][vendor:cnv-qe@redhat.com][level:component] Rbac Authorization For Guestfs Command", func() {
 		resource := "guestfs"
 
 		Context("with authenticated user", func() {
@@ -110,7 +114,7 @@ var _ = Describe("[sig-compute]Subresource Api", func() {
 		})
 	})
 
-	Describe("[crit:medium][vendor:cnv-qe@redhat.com][level:component] Rbac Authorization For Expand-Spec Command", func() {
+	FDescribe("[crit:medium][vendor:cnv-qe@redhat.com][level:component] Rbac Authorization For Expand-Spec Command", func() {
 		const resource = "expand-spec"
 
 		It("should be allowed to access expand-spec endpoint with authenticated user", func() {
@@ -621,9 +625,10 @@ func testClientJob(virtCli kubecli.KubevirtClient, withServiceAccount bool, reso
 			RestartPolicy: k8sv1.RestartPolicyNever,
 			Containers: []k8sv1.Container{
 				{
-					Name:    name,
-					Image:   fmt.Sprintf("%s/subresource-access-test:%s", flags.KubeVirtUtilityRepoPrefix, flags.KubeVirtUtilityVersionTag),
-					Command: []string{"/subresource-access-test", "-n", namespace, resource},
+					Name:            name,
+					Image:           fmt.Sprintf("%s/subresource-access-test:%s", flags.KubeVirtUtilityRepoPrefix, flags.KubeVirtUtilityVersionTag),
+					ImagePullPolicy: k8sv1.PullAlways,
+					Command:         []string{"/subresource-access-test", "-n", namespace, resource},
 					SecurityContext: &k8sv1.SecurityContext{
 						AllowPrivilegeEscalation: pointer.Bool(false),
 						Capabilities:             &k8sv1.Capabilities{Drop: []k8sv1.Capability{"ALL"}},
@@ -647,6 +652,8 @@ func testClientJob(virtCli kubecli.KubevirtClient, withServiceAccount bool, reso
 
 	pod, err := virtCli.CoreV1().Pods(namespace).Create(context.Background(), job, metav1.CreateOptions{})
 	Expect(err).ToNot(HaveOccurred())
+	raw, _ := yaml.Marshal(pod)
+	fmt.Println(string(raw))
 
 	getStatus := func() k8sv1.PodPhase {
 		pod, err := virtCli.CoreV1().Pods(namespace).Get(context.Background(), pod.Name, metav1.GetOptions{})
@@ -655,4 +662,16 @@ func testClientJob(virtCli kubecli.KubevirtClient, withServiceAccount bool, reso
 	}
 
 	Eventually(getStatus, 60, 0.5).Should(Equal(expectedPhase))
+
+	req := virtCli.CoreV1().Pods(namespace).GetLogs(pod.Name, &k8sv1.PodLogOptions{})
+	podLogs, err := req.Stream(context.Background())
+	Expect(err).ToNot(HaveOccurred())
+	defer func(podLogs io.ReadCloser) {
+		err := podLogs.Close()
+		Expect(err).ToNot(HaveOccurred())
+	}(podLogs)
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	Expect(err).ToNot(HaveOccurred())
+	fmt.Println(buf.String())
 }

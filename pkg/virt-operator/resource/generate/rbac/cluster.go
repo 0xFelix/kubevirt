@@ -187,9 +187,6 @@ func newAdminClusterRole() *rbacv1.ClusterRole {
 				},
 			},
 			{
-				APIGroups: []string{
-					GroupNameSubresources,
-				},
 				NonResourceURLs: []string{
 					VMExpandSpecURLV1,
 					VMExpandSpecURLV1Alpha3,
@@ -332,9 +329,6 @@ func newEditClusterRole() *rbacv1.ClusterRole {
 				},
 			},
 			{
-				APIGroups: []string{
-					GroupNameSubresources,
-				},
 				NonResourceURLs: []string{
 					VMExpandSpecURLV1,
 					VMExpandSpecURLV1Alpha3,
@@ -450,9 +444,6 @@ func newViewClusterRole() *rbacv1.ClusterRole {
 				},
 			},
 			{
-				APIGroups: []string{
-					GroupNameSubresources,
-				},
 				NonResourceURLs: []string{
 					VMExpandSpecURLV1,
 					VMExpandSpecURLV1Alpha3,

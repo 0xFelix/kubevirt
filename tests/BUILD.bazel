@@ -285,5 +285,6 @@ go_test(
         "//vendor/kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1:go_default_library",
         "//vendor/kubevirt.io/controller-lifecycle-operator-sdk/api:go_default_library",
         "//vendor/kubevirt.io/qe-tools/pkg/ginkgo-reporters:go_default_library",
+        "//vendor/sigs.k8s.io/yaml:go_default_library",
     ],
 )

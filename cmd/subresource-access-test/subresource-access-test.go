@@ -74,6 +74,10 @@ func main() {
 		}
 
 		result := request.Do(context.Background())
+
+		raw, _ := result.Raw()
+		fmt.Println(string(raw))
+
 		err = result.Error()
 		if err != nil {
 			panic(err)
