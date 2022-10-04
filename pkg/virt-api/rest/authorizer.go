@@ -50,6 +50,8 @@ type VirtApiAuthorizor interface {
 	GetGroupHeaders() []string
 	AddExtraPrefixHeaders(header []string)
 	GetExtraPrefixHeaders() []string
+	NewSubjectAccessReview(*restful.Request) (*authv1.SubjectAccessReview, error)
+	CreateSubjectAccessReview(*authv1.SubjectAccessReview) (*authv1.SubjectAccessReview, error)
 }
 
 type authorizor struct {
@@ -120,7 +122,7 @@ func (a *authorizor) GetExtraPrefixHeaders() []string {
 	return a.userExtraHeaderPrefixes
 }
 
-func (a *authorizor) generateAccessReview(req *restful.Request) (*authv1.SubjectAccessReview, error) {
+func (a *authorizor) NewSubjectAccessReview(req *restful.Request) (*authv1.SubjectAccessReview, error) {
 	if req.Request == nil {
 		return nil, fmt.Errorf("empty http request")
 	}
@@ -138,34 +140,36 @@ func (a *authorizor) generateAccessReview(req *restful.Request) (*authv1.Subject
 		return nil, err
 	}
 
-	r := &authv1.SubjectAccessReview{}
-	r.Spec = authv1.SubjectAccessReviewSpec{
-		User:   userName,
-		Groups: userGroups,
-		Extra:  a.getUserExtras(req.Request.Header),
-	}
+	return &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   userName,
+			Groups: userGroups,
+			Extra:  a.getUserExtras(req.Request.Header),
+		},
+	}, nil
+}
 
+func (a *authorizor) CreateSubjectAccessReview(sar *authv1.SubjectAccessReview) (*authv1.SubjectAccessReview, error) {
+	result, err := a.client.Create(context.Background(), sar, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func addAttributes(req *restful.Request, r *authv1.SubjectAccessReview) error {
 	// URL example
 	// /apis/subresources.kubevirt.io/v1alpha3/namespaces/default/virtualmachineinstances/testvmi/console
 	pathSplit := strings.Split(req.Request.URL.Path, "/")
 	if len(pathSplit) < 5 {
-		// When generateAccessReview is called isInfoOrHealthEndpoint already confirmed that len(pathSplit) >= 5,
-		// so this should never happen
-		return nil, fmt.Errorf("unknown api endpoint: %s", req.Request.URL.Path)
+		return fmt.Errorf("unknown api endpoint: %s", req.Request.URL.Path)
 	}
 
 	// "namespaces" after version means that the URL points to a namespaced subresource
 	if pathSplit[4] == "namespaces" {
-		if err := addNamespacedAttributes(req, r, pathSplit); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := addNonNamespacedAttributes(req, r, pathSplit); err != nil {
-			return nil, err
-		}
+		return addNamespacedAttributes(req, r, pathSplit)
 	}
-
-	return r, nil
+	return addNonNamespacedAttributes(req, r, pathSplit)
 }
 
 func addNamespacedAttributes(req *restful.Request, r *authv1.SubjectAccessReview, pathSplit []string) error {
@@ -307,7 +311,7 @@ func (a *authorizor) Authorize(req *restful.Request) (bool, string, error) {
 		return false, "request is not authenticated", nil
 	}
 
-	r, err := a.generateAccessReview(req)
+	r, err := a.NewSubjectAccessReview(req)
 	if err != nil {
 		// only internal service errors are returned
 		// as an error.
@@ -316,8 +320,11 @@ func (a *authorizor) Authorize(req *restful.Request) (bool, string, error) {
 		// Return that error as the "Reason" for the authorization failure.
 		return false, fmt.Sprintf("%v", err), nil
 	}
+	if err := addAttributes(req, r); err != nil {
+		return false, fmt.Sprintf("%v", err), nil
+	}
 
-	result, err := a.client.Create(context.Background(), r, metav1.CreateOptions{})
+	result, err := a.CreateSubjectAccessReview(r)
 	if err != nil {
 		return false, "internal server error", err
 	}
