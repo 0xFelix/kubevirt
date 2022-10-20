@@ -1343,6 +1343,23 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 		var workDir string
 		var vmRunningRe *regexp.Regexp
 
+		getExpectedPodName := func(vm *v1.VirtualMachine) string {
+			maxNameLength := 63
+			podNamePrefix := "virt-launcher-"
+			podGeneratedSuffixLen := 5
+			charCountFromName := maxNameLength - len(podNamePrefix) - podGeneratedSuffixLen
+			expectedPodName := fmt.Sprintf(fmt.Sprintf("virt-launcher-%%.%ds", charCountFromName), vm.GetName())
+			return expectedPodName
+		}
+
+		waitForResourceDeletion := func(resourceType string, resourceName string) {
+			Eventually(func() bool {
+				stdout, _, err := clientcmd.RunCommand(k8sClient, "get", resourceType)
+				Expect(err).ToNot(HaveOccurred())
+				return strings.Contains(stdout, resourceName)
+			}, 120*time.Second, 1*time.Second).Should(BeFalse(), "VM was not deleted")
+		}
+
 		BeforeEach(func() {
 			k8sClient = clientcmd.GetK8sCmdClient()
 			clientcmd.SkipIfNoCmd(k8sClient)
@@ -1441,11 +1458,11 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verifying the VM gets deleted")
-			waitForResourceDeletion(k8sClient, "vms", vm.GetName())
+			waitForResourceDeletion("vms", vm.GetName())
 
 			By("Verifying pod gets deleted")
 			expectedPodName := getExpectedPodName(vm)
-			waitForResourceDeletion(k8sClient, "pods", expectedPodName)
+			waitForResourceDeletion("pods", expectedPodName)
 		})
 
 		Context("should not change anything if dry-run option is passed", func() {
@@ -1583,7 +1600,7 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verifying the VM gets deleted")
-			waitForResourceDeletion(k8sClient, "vms", vm.GetName())
+			waitForResourceDeletion("vms", vm.GetName())
 
 			By("Creating same VM using k8s client binary and same manifest")
 			_, _, err = clientcmd.RunCommand(k8sClient, "create", "-f", vmJson)
@@ -1775,20 +1792,3 @@ var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:com
 		})
 	})
 })
-
-func getExpectedPodName(vm *v1.VirtualMachine) string {
-	maxNameLength := 63
-	podNamePrefix := "virt-launcher-"
-	podGeneratedSuffixLen := 5
-	charCountFromName := maxNameLength - len(podNamePrefix) - podGeneratedSuffixLen
-	expectedPodName := fmt.Sprintf(fmt.Sprintf("virt-launcher-%%.%ds", charCountFromName), vm.GetName())
-	return expectedPodName
-}
-
-func waitForResourceDeletion(k8sClient string, resourceType string, resourceName string) {
-	Eventually(func() bool {
-		stdout, _, err := clientcmd.RunCommand(k8sClient, "get", resourceType)
-		Expect(err).ToNot(HaveOccurred())
-		return strings.Contains(stdout, resourceName)
-	}, 120*time.Second, 1*time.Second).Should(BeFalse(), "VM was not deleted")
-}
