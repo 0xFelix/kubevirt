@@ -3,11 +3,15 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
+        "created.go",
         "existence.go",
         "getter.go",
         "owner.go",
         "phase.go",
         "readiness.go",
+        "ready.go",
+        "restarted.go",
+        "statechangerequests.go",
     ],
     importpath = "kubevirt.io/kubevirt/tests/framework/matcher",
     visibility = ["//visibility:public"],
@@ -23,6 +27,7 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
         "//vendor/kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1:go_default_library",
     ],
 )
@@ -30,11 +35,15 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
+        "created_test.go",
         "existence_test.go",
         "matcher_suite_test.go",
         "owner_test.go",
         "phase_test.go",
         "readiness_test.go",
+        "ready_test.go",
+        "restarted_test.go",
+        "statechangerequests_test.go",
     ],
     embed = [":go_default_library"],
     deps = [
@@ -46,6 +55,7 @@ go_test(
         "//vendor/k8s.io/api/apps/v1:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
         "//vendor/kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1:go_default_library",
     ],
 )
