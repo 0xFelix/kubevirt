@@ -22,4 +22,6 @@ var (
 	VGPU                 = []interface{}{Label("VGPU")}
 	SRIOV                = []interface{}{Label("SRIOV")}
 	NonRoot              = []interface{}{Label("verify-non-root")}
+	Native               = []interface{}{Label("native")}
+	ExcludeNative        = []interface{}{Label("excludenative")}
 )
