@@ -66,10 +66,10 @@ const (
 	PVC_FLAG      = "--pvc"
 	TTL_FLAG      = "--ttl"
 
-	// processingWaitInterval is the time interval used to wait for a virtualMachineExport to be ready
-	processingWaitInterval = 2 * time.Second
-	// processingWaitTotal is the maximum time used to wait for a virtualMachineExport to be ready
-	processingWaitTotal = 2 * time.Minute
+	// ProcessingWaitInterval is the time interval used to wait for a virtualMachineExport to be ready
+	ProcessingWaitInterval = 2 * time.Second
+	// ProcessingWaitTotal is the maximum time used to wait for a virtualMachineExport to be ready
+	ProcessingWaitTotal = 2 * time.Minute
 
 	// exportTokenHeader is the http header used to download the exported volume using the secret token
 	exportTokenHeader = "x-kubevirt-export-token"
@@ -355,7 +355,7 @@ func DownloadVirtualMachineExport(client kubecli.KubevirtClient, vmeInfo *VMExpo
 	}
 
 	// Wait for the vmexport object to be ready
-	if err := ExportProcessingComplete(client, vmeInfo, processingWaitInterval, processingWaitTotal); err != nil {
+	if err := ExportProcessingComplete(client, vmeInfo, ProcessingWaitInterval, ProcessingWaitTotal); err != nil {
 		return err
 	}
 
