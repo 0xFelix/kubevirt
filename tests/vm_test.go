@@ -22,7 +22,6 @@ package tests_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -71,7 +70,6 @@ import (
 var _ = Describe("[rfe_id:1177][crit:medium][vendor:cnv-qe@redhat.com][level:component][sig-compute]VirtualMachine", decorators.SigCompute, func() {
 	var err error
 	var virtClient kubecli.KubevirtClient
-	var file *os.File
 
 	runStrategyAlways := v1.RunStrategyAlways
 	runStrategyHalted := v1.RunStrategyHalted
@@ -1422,8 +1420,10 @@ status:
 `
 				)
 
+				var file *os.File
+
 				BeforeEach(func() {
-					file, err = ioutil.TempFile("", "file-*")
+					file, err = os.CreateTemp("", "file-*")
 					Expect(err).ToNot(HaveOccurred())
 				})
 
