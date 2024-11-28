@@ -2,6 +2,7 @@ package password_test
 
 import (
 	"context"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,7 +21,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/apimachinery/patch"
 	"kubevirt.io/kubevirt/pkg/libvmi"
 	"kubevirt.io/kubevirt/pkg/pointer"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 var _ = Describe("Credentials set-password", func() {
@@ -211,5 +211,5 @@ func expectSecretToContainUserWithPassword(kubeClient kubernetes.Interface, secr
 }
 
 func runSetPasswordCommand(args ...string) error {
-	return clientcmd.NewRepeatableVirtctlCommand(append([]string{"credentials", "set-password"}, args...)...)()
+	return testing.NewRepeatableVirtctlCommand(append([]string{"credentials", "set-password"}, args...)...)()
 }

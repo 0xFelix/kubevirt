@@ -31,7 +31,7 @@ var _ = Describe("[sig-compute][virtctl]SSH", decorators.SigCompute, func() {
 	var virtClient kubecli.KubevirtClient
 
 	cmdNative := func(vmiName string) {
-		Expect(clientcmd.NewRepeatableVirtctlCommand(
+		Expect(NewRepeatableVirtctlCommand(
 			"ssh",
 			"--local-ssh=false",
 			"--namespace", testsuite.GetTestNamespace(nil),

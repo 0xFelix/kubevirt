@@ -2,6 +2,7 @@ package expose_test
 
 import (
 	"context"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,7 +19,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/libvmi"
 	"kubevirt.io/kubevirt/pkg/pointer"
 	"kubevirt.io/kubevirt/pkg/virtctl/expose"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 var _ = Describe("Expose", func() {
@@ -438,5 +438,5 @@ var _ = Describe("Expose", func() {
 })
 
 func runCommand(args ...string) error {
-	return clientcmd.NewRepeatableVirtctlCommand(append([]string{expose.COMMAND_EXPOSE}, args...)...)()
+	return testing.NewRepeatableVirtctlCommand(append([]string{expose.COMMAND_EXPOSE}, args...)...)()
 }

@@ -2,6 +2,7 @@ package removekey_test
 
 import (
 	"context"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 	"os"
 	"path/filepath"
 
@@ -25,7 +26,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/apimachinery/patch"
 	"kubevirt.io/kubevirt/pkg/libvmi"
 	"kubevirt.io/kubevirt/pkg/pointer"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 var _ = Describe("Credentials remove-ssh-key", func() {
@@ -282,5 +282,5 @@ func expectSecretToBeEmpty(kubeClient kubernetes.Interface, name string) {
 }
 
 func runRemoveKeyCommand(args ...string) error {
-	return clientcmd.NewRepeatableVirtctlCommand(append([]string{"credentials", "remove-ssh-key"}, args...)...)()
+	return testing.NewRepeatableVirtctlCommand(append([]string{"credentials", "remove-ssh-key"}, args...)...)()
 }

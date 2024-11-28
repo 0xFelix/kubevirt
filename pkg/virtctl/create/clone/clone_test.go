@@ -21,6 +21,7 @@ package clone_test
 
 import (
 	"fmt"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -28,7 +29,6 @@ import (
 	clonev1alpha1 "kubevirt.io/api/clone/v1alpha1"
 
 	"kubevirt.io/kubevirt/pkg/virtctl/create/clone"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 const (
@@ -262,7 +262,7 @@ func newCommand(createCloneFlags ...string) (*clonev1alpha1.VirtualMachineClone,
 	baseArgs := []string{create, clone.Clone}
 	args := append(baseArgs, createCloneFlags...)
 
-	bytes, err := clientcmd.NewRepeatableVirtctlCommandWithOut(args...)()
+	bytes, err := testing.NewRepeatableVirtctlCommandWithOut(args...)()
 	if err != nil {
 		return nil, err
 	}

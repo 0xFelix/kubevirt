@@ -294,7 +294,7 @@ func runImageUploadCmd(args ...string) error {
 		"--size", pvcSize,
 		"--insecure",
 	}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return NewRepeatableVirtctlCommand(_args...)()
 }
 
 func validateDataVolume(targetName string, _ string) {

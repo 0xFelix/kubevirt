@@ -2,6 +2,7 @@ package guestfs_test
 
 import (
 	"fmt"
+	testing2 "kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,8 +19,6 @@ import (
 	"kubevirt.io/client-go/kubecli"
 
 	"kubevirt.io/kubevirt/pkg/virtctl/guestfs"
-
-	virtctlcmd "kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 const (
@@ -119,13 +118,13 @@ var _ = Describe("Guestfs shell", func() {
 
 		It("Succesfully attach to PVC", func() {
 			guestfs.CreateClientFunc = fakeCreateClientPVC
-			cmd := virtctlcmd.NewRepeatableVirtctlCommand(commandName, pvcName)
+			cmd := testing2.NewRepeatableVirtctlCommand(commandName, pvcName)
 			Expect(cmd()).To(Succeed())
 		})
 
 		It("PVC in use", func() {
 			guestfs.CreateClientFunc = fakeCreateClientPVCinUse
-			cmd := virtctlcmd.NewRepeatableVirtctlCommand(commandName, pvcName)
+			cmd := testing2.NewRepeatableVirtctlCommand(commandName, pvcName)
 			err := cmd()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(Equal(fmt.Sprintf("PVC %s is used by another pod", pvcName)))
@@ -133,7 +132,7 @@ var _ = Describe("Guestfs shell", func() {
 
 		It("PVC doesn't exist", func() {
 			guestfs.CreateClientFunc = fakeCreateClient
-			cmd := virtctlcmd.NewRepeatableVirtctlCommand(commandName, pvcName)
+			cmd := testing2.NewRepeatableVirtctlCommand(commandName, pvcName)
 			err := cmd()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(Equal(fmt.Sprintf("The PVC %s doesn't exist", pvcName)))
@@ -141,14 +140,14 @@ var _ = Describe("Guestfs shell", func() {
 
 		It("UID cannot be used with root", func() {
 			guestfs.CreateClientFunc = fakeCreateClientPVC
-			cmd := virtctlcmd.NewRepeatableVirtctlCommand(commandName, pvcName, "--root=true", "--uid=1001")
+			cmd := testing2.NewRepeatableVirtctlCommand(commandName, pvcName, "--root=true", "--uid=1001")
 			err := cmd()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(Equal(fmt.Sprintf("cannot set uid if root is true")))
 		})
 		It("GID can be use only together with the uid flag", func() {
 			guestfs.CreateClientFunc = fakeCreateClientPVC
-			cmd := virtctlcmd.NewRepeatableVirtctlCommand(commandName, pvcName, "--gid=1001")
+			cmd := testing2.NewRepeatableVirtctlCommand(commandName, pvcName, "--gid=1001")
 			err := cmd()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(Equal(fmt.Sprintf("gid requires the uid to be set")))

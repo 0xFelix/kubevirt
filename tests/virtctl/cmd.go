@@ -17,7 +17,7 @@
  *
  */
 
-package clientcmd
+package virtctl
 
 import (
 	"bytes"
@@ -28,18 +28,18 @@ import (
 	"kubevirt.io/kubevirt/pkg/virtctl"
 )
 
-func NewVirtctlCommand(args ...string) *cobra.Command {
-	commandline := []string{}
+func NewVirtctlCommand(extraArgs ...string) *cobra.Command {
+	var args []string
 	master := flag.Lookup("master").Value
 	if master != nil && master.String() != "" {
-		commandline = append(commandline, serverName, master.String())
+		args = append(args, "--server="+master.String())
 	}
 	kubeconfig := flag.Lookup("kubeconfig").Value
 	if kubeconfig != nil && kubeconfig.String() != "" {
-		commandline = append(commandline, "--kubeconfig", kubeconfig.String())
+		args = append(args, "--kubeconfig="+kubeconfig.String())
 	}
 	cmd, _ := virtctl.NewVirtctlCommand()
-	cmd.SetArgs(append(commandline, args...))
+	cmd.SetArgs(append(args, extraArgs...))
 	return cmd
 }
 

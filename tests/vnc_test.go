@@ -33,11 +33,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"kubevirt.io/kubevirt/tests/virtctl"
+
 	"kubevirt.io/kubevirt/tests/decorators"
 
 	"github.com/mitchellh/go-vnc"
 
-	"kubevirt.io/kubevirt/tests/clientcmd"
 	"kubevirt.io/kubevirt/tests/testsuite"
 
 	"github.com/gorilla/websocket"
@@ -179,7 +180,7 @@ var _ = Describe("[rfe_id:127][crit:medium][arm64][vendor:cnv-qe@redhat.com][lev
 		It("[test_id:4272]should connect to vnc with --proxy-only flag", func() {
 
 			By("Invoking virtctl vnc with --proxy-only")
-			proxyOnlyCommand := clientcmd.NewVirtctlCommand("vnc", "--proxy-only", "--namespace", vmi.Namespace, vmi.Name)
+			proxyOnlyCommand := virtctl.NewVirtctlCommand("vnc", "--proxy-only", "--namespace", vmi.Namespace, vmi.Name)
 
 			r, w, _ := os.Pipe()
 			proxyOnlyCommand.SetOut(w)
@@ -218,7 +219,7 @@ var _ = Describe("[rfe_id:127][crit:medium][arm64][vendor:cnv-qe@redhat.com][lev
 			testPort := "33333"
 
 			By("Invoking virtctl vnc with --proxy-only")
-			proxyOnlyCommand := clientcmd.NewVirtctlCommand("vnc", "--proxy-only", "--port", testPort, "--namespace", vmi.Namespace, vmi.Name)
+			proxyOnlyCommand := virtctl.NewVirtctlCommand("vnc", "--proxy-only", "--port", testPort, "--namespace", vmi.Namespace, vmi.Name)
 
 			// Run this as go routine to keep proxy open in the background
 			go func() {
@@ -261,7 +262,7 @@ var _ = Describe("[rfe_id:127][crit:medium][arm64][vendor:cnv-qe@redhat.com][lev
 			// Sometimes we can see initially a 640x480 resolution if we connect very early
 			By("gathering screenshots until we are past the first boot screen and see the expected 720x400 resolution")
 			Eventually(func() image.Image {
-				cmd := clientcmd.NewVirtctlCommand("vnc", "screenshot", "--namespace", vmi.Namespace, "--file", filePath, vmi.Name)
+				cmd := virtctl.NewVirtctlCommand("vnc", "screenshot", "--namespace", vmi.Namespace, "--file", filePath, vmi.Name)
 				Expect(cmd.Execute()).To(Succeed())
 
 				f, err := os.Open(filePath)

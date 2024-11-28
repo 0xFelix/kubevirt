@@ -22,6 +22,7 @@ package vm_test
 import (
 	"context"
 	"fmt"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -30,8 +31,6 @@ import (
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/kubecli"
-
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 var _ = Describe("Migrate cancel command", func() {
@@ -55,14 +54,14 @@ var _ = Describe("Migrate cancel command", func() {
 	})
 
 	It("should fail with missing input parameters", func() {
-		cmd := clientcmd.NewRepeatableVirtctlCommand("migrate-cancel")
+		cmd := testing.NewRepeatableVirtctlCommand("migrate-cancel")
 		err := cmd()
 		Expect(err).To(HaveOccurred())
 		Expect(err).Should(MatchError("accepts 1 arg(s), received 0"))
 	})
 
 	It("should cancel the vm migration", func() {
-		cmd := clientcmd.NewRepeatableVirtctlCommand("migrate-cancel", vm.Name)
+		cmd := testing.NewRepeatableVirtctlCommand("migrate-cancel", vm.Name)
 
 		vmiMigration.Status.Phase = v1.MigrationRunning
 		migList := v1.VirtualMachineInstanceMigrationList{
@@ -82,7 +81,7 @@ var _ = Describe("Migrate cancel command", func() {
 	})
 
 	It("Should fail if no active migration is found", func() {
-		cmd := clientcmd.NewRepeatableVirtctlCommand("migrate-cancel", vm.Name)
+		cmd := testing.NewRepeatableVirtctlCommand("migrate-cancel", vm.Name)
 
 		vmiMigration.Status.Phase = v1.MigrationSucceeded
 		migList := v1.VirtualMachineInstanceMigrationList{

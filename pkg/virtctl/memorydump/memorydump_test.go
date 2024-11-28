@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	testing2 "kubevirt.io/kubevirt/pkg/virtctl/testing"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -35,7 +36,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/libvmi"
 	"kubevirt.io/kubevirt/pkg/virtctl/memorydump"
 	"kubevirt.io/kubevirt/pkg/virtctl/vmexport"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 const vmName = "test-vm"
@@ -524,20 +524,20 @@ func setFlag(flag, parameter string) string {
 
 func runCmd(args ...string) error {
 	_args := append([]string{"memory-dump"}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return testing2.NewRepeatableVirtctlCommand(_args...)()
 }
 
 func runGetCmd(args ...string) error {
 	_args := append([]string{"memory-dump", "get", vmName}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return testing2.NewRepeatableVirtctlCommand(_args...)()
 }
 
 func runDownloadCmd(args ...string) error {
 	_args := append([]string{"memory-dump", "download", vmName}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return testing2.NewRepeatableVirtctlCommand(_args...)()
 }
 
 func runRemoveCmd(args ...string) error {
 	_args := append([]string{"memory-dump", "remove", vmName}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return testing2.NewRepeatableVirtctlCommand(_args...)()
 }

@@ -20,7 +20,6 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 
 	"kubevirt.io/kubevirt/pkg/libvmi"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 	"kubevirt.io/kubevirt/tests/decorators"
 	"kubevirt.io/kubevirt/tests/exec"
 	"kubevirt.io/kubevirt/tests/framework/checks"
@@ -151,7 +150,7 @@ func runMemoryDumpGetCmd(name string, args ...string) error {
 		"memory-dump", "get", name,
 		"--namespace", testsuite.GetTestNamespace(nil),
 	}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return NewRepeatableVirtctlCommand(_args...)()
 }
 
 func runMemoryDumpDownloadCmd(name string, args ...string) error {
@@ -159,14 +158,14 @@ func runMemoryDumpDownloadCmd(name string, args ...string) error {
 		"memory-dump", "download", name,
 		"--namespace", testsuite.GetTestNamespace(nil),
 	}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return NewRepeatableVirtctlCommand(_args...)()
 }
 func runMemoryDumpRemoveCmd(name string, args ...string) error {
 	_args := append([]string{
 		"memory-dump", "remove", name,
 		"--namespace", testsuite.GetTestNamespace(nil),
 	}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return NewRepeatableVirtctlCommand(_args...)()
 }
 
 func waitForMemoryDumpCompletion(vmName, pvcName, previousOut string, shouldEqual bool) string {

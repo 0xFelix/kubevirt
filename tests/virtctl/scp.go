@@ -44,7 +44,7 @@ var _ = Describe("[sig-compute][virtctl]SCP", decorators.SigCompute, func() {
 			args = append(args, "--recursive")
 		}
 		args = append(args, src, dst)
-		Expect(clientcmd.NewRepeatableVirtctlCommand(args...)()).To(Succeed())
+		Expect(NewRepeatableVirtctlCommand(args...)()).To(Succeed())
 	}
 
 	copyLocal := func(appendLocalSSH bool) func(src, dst string, recursive bool) {

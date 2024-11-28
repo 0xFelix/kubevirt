@@ -20,6 +20,7 @@ package instancetype_test
 
 import (
 	"fmt"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 	"strconv"
 	"strings"
 
@@ -39,7 +40,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/virt-api/webhooks/validating-webhook/admitters"
 	"kubevirt.io/kubevirt/pkg/virtctl/create"
 	. "kubevirt.io/kubevirt/pkg/virtctl/create/instancetype"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 var _ = Describe("create instancetype", func() {
@@ -223,7 +223,7 @@ func setFlag(flag, parameter string) string {
 
 func runCmd(extraArgs ...string) ([]byte, error) {
 	args := append([]string{create.CREATE, "instancetype"}, extraArgs...)
-	return clientcmd.NewRepeatableVirtctlCommandWithOut(args...)()
+	return testing.NewRepeatableVirtctlCommandWithOut(args...)()
 }
 
 func getInstancetypeSpec(bytes []byte) *instancetypev1beta1.VirtualMachineInstancetypeSpec {

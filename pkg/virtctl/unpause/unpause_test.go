@@ -2,6 +2,7 @@ package unpause_test
 
 import (
 	"context"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -9,13 +10,10 @@ import (
 
 	"kubevirt.io/client-go/api"
 
-	"github.com/spf13/cobra"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/kubecli"
-
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 var _ = Describe("Unpausing", func() {
@@ -39,7 +37,7 @@ var _ = Describe("Unpausing", func() {
 
 	Context("With missing input parameters", func() {
 		It("should fail an unpause", func() {
-			cmd := clientcmd.NewRepeatableVirtctlCommand(COMMAND_UNPAUSE)
+			cmd := testing.NewRepeatableVirtctlCommand(COMMAND_UNPAUSE)
 			err := cmd()
 			Expect(err).To(HaveOccurred())
 		})
@@ -52,13 +50,13 @@ var _ = Describe("Unpausing", func() {
 		kubecli.MockKubevirtClientInstance.EXPECT().VirtualMachineInstance(k8smetav1.NamespaceDefault).Return(vmiInterface).Times(1)
 		vmiInterface.EXPECT().Unpause(context.Background(), vmi.Name, unpauseOptions).Return(nil).Times(1)
 
-		var command *cobra.Command
+		var command func() error
 		if len(unpauseOptions.DryRun) == 0 {
-			command = clientcmd.NewVirtctlCommand(COMMAND_UNPAUSE, "vmi", vmName)
+			command = testing.NewRepeatableVirtctlCommand(COMMAND_UNPAUSE, "vmi", vmName)
 		} else {
-			command = clientcmd.NewVirtctlCommand(COMMAND_UNPAUSE, "--dry-run", "vmi", vmName)
+			command = testing.NewRepeatableVirtctlCommand(COMMAND_UNPAUSE, "--dry-run", "vmi", vmName)
 		}
-		Expect(command.Execute()).To(Succeed())
+		Expect(command()).To(Succeed())
 	},
 		Entry("", &v1.UnpauseOptions{}),
 		Entry("with dry-run option", &v1.UnpauseOptions{DryRun: []string{k8smetav1.DryRunAll}}),
@@ -77,13 +75,13 @@ var _ = Describe("Unpausing", func() {
 
 		vmInterface.EXPECT().Get(context.Background(), vm.Name, k8smetav1.GetOptions{}).Return(vm, nil).Times(1)
 		vmiInterface.EXPECT().Unpause(context.Background(), vm.Name, unpauseOptions).Return(nil).Times(1)
-		var command *cobra.Command
+		var command func() error
 		if len(unpauseOptions.DryRun) == 0 {
-			command = clientcmd.NewVirtctlCommand(COMMAND_UNPAUSE, "vm", vmName)
+			command = testing.NewRepeatableVirtctlCommand(COMMAND_UNPAUSE, "vm", vmName)
 		} else {
-			command = clientcmd.NewVirtctlCommand(COMMAND_UNPAUSE, "--dry-run", "vm", vmName)
+			command = testing.NewRepeatableVirtctlCommand(COMMAND_UNPAUSE, "--dry-run", "vm", vmName)
 		}
-		Expect(command.Execute()).To(Succeed())
+		Expect(command()).To(Succeed())
 	},
 		Entry("", &v1.UnpauseOptions{}),
 		Entry("with dry-run option", &v1.UnpauseOptions{DryRun: []string{k8smetav1.DryRunAll}}),

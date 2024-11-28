@@ -23,6 +23,8 @@ import (
 	"context"
 	"time"
 
+	"kubevirt.io/kubevirt/tests/virtctl"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -34,7 +36,6 @@ import (
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/kubecli"
 
-	"kubevirt.io/kubevirt/tests/clientcmd"
 	"kubevirt.io/kubevirt/tests/decorators"
 	"kubevirt.io/kubevirt/tests/flags"
 	"kubevirt.io/kubevirt/tests/framework/kubevirt"
@@ -198,7 +199,7 @@ var _ = Describe("[Serial][sig-monitoring]Component Monitoring", Serial, decorat
 			randVmName := rand.String(6)
 
 			Eventually(func(g Gomega) {
-				cmd := clientcmd.NewVirtctlCommand("vnc", randVmName)
+				cmd := virtctl.NewVirtctlCommand("vnc", randVmName)
 				err := cmd.Execute()
 				Expect(err).To(HaveOccurred())
 

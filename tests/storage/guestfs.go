@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"kubevirt.io/kubevirt/tests/virtctl"
+
 	"kubevirt.io/kubevirt/tests/framework/kubevirt"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -16,7 +18,6 @@ import (
 	"kubevirt.io/client-go/kubecli"
 
 	"kubevirt.io/kubevirt/pkg/virtctl/guestfs"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 	"kubevirt.io/kubevirt/tests/exec"
 	"kubevirt.io/kubevirt/tests/libstorage"
 	"kubevirt.io/kubevirt/tests/testsuite"
@@ -86,7 +87,7 @@ var _ = SIGDescribe("[rfe_id:6364]Guestfs", Label("guestfs"), func() {
 		if setGroup {
 			o = append(o, "--fsGroup", testGroup)
 		}
-		guestfsCmd := clientcmd.NewVirtctlCommand(o...)
+		guestfsCmd := virtctl.NewVirtctlCommand(o...)
 		go guestfsWithSync(f, guestfsCmd)
 		// Waiting until the libguestfs pod is running
 		Eventually(func() bool {
@@ -163,7 +164,7 @@ var _ = SIGDescribe("[rfe_id:6364]Guestfs", Label("guestfs"), func() {
 			if setGroup {
 				options = append(options, "--fsGroup", testGroup)
 			}
-			guestfsCmd := clientcmd.NewVirtctlCommand(options...)
+			guestfsCmd := virtctl.NewVirtctlCommand(options...)
 			Expect(guestfsCmd.Execute()).To(HaveOccurred())
 		})
 

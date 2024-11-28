@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	testing2 "kubevirt.io/kubevirt/pkg/virtctl/testing"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -31,7 +32,6 @@ import (
 	kubevirtfake "kubevirt.io/client-go/kubevirt/fake"
 
 	"kubevirt.io/kubevirt/pkg/virtctl/vmexport"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 const vmeName = "test-vme"
@@ -978,20 +978,20 @@ func setFlag(flag, parameter string) string {
 
 func runCmd(args ...string) error {
 	_args := append([]string{"vmexport"}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return testing2.NewRepeatableVirtctlCommand(_args...)()
 }
 
 func runCreateCmd(args ...string) error {
 	_args := append([]string{"vmexport", vmexport.CREATE, vmeName}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return testing2.NewRepeatableVirtctlCommand(_args...)()
 }
 
 func runDeleteCmd(args ...string) error {
 	_args := append([]string{"vmexport", vmexport.DELETE, vmeName}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return testing2.NewRepeatableVirtctlCommand(_args...)()
 }
 
 func runDownloadCmd(args ...string) error {
 	_args := append([]string{"vmexport", vmexport.DOWNLOAD, vmeName}, args...)
-	return clientcmd.NewRepeatableVirtctlCommand(_args...)()
+	return testing2.NewRepeatableVirtctlCommand(_args...)()
 }

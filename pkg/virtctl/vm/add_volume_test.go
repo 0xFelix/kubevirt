@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	testing2 "kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,8 +41,6 @@ import (
 	"kubevirt.io/client-go/kubecli"
 	kubevirtfake "kubevirt.io/client-go/kubevirt/fake"
 	"kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
-
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 type verifyFn func(*v1.AddVolumeOptions)
@@ -71,7 +70,7 @@ var _ = Describe("Add volume command", func() {
 
 	DescribeTable("should fail with missing required or invalid parameters", func(expected string, extraArgs ...string) {
 		args := append([]string{"addvolume"}, extraArgs...)
-		cmd := clientcmd.NewRepeatableVirtctlCommand(args...)
+		cmd := testing2.NewRepeatableVirtctlCommand(args...)
 		Expect(cmd()).To(MatchError(ContainSubstring(expected)))
 	},
 		Entry("addvolume no args", "accepts 1 arg(s), received 0"),
@@ -90,7 +89,7 @@ var _ = Describe("Add volume command", func() {
 		}, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		cmd := clientcmd.NewRepeatableVirtctlCommand("addvolume", vmiName, "--volume-name="+volumeName, "--disk-type=cdrom")
+		cmd := testing2.NewRepeatableVirtctlCommand("addvolume", vmiName, "--volume-name="+volumeName, "--disk-type=cdrom")
 		Expect(cmd()).To(MatchError(ContainSubstring("Invalid disk type")))
 	})
 
@@ -102,7 +101,7 @@ var _ = Describe("Add volume command", func() {
 		if dryRun {
 			args = append(args, "--dry-run")
 		}
-		cmd := clientcmd.NewRepeatableVirtctlCommand(args...)
+		cmd := testing2.NewRepeatableVirtctlCommand(args...)
 		Expect(cmd()).To(MatchError(ContainSubstring("Volume " + volumeName + " is not a DataVolume or PersistentVolumeClaim")))
 	},
 		Entry("with default", false),
@@ -173,7 +172,7 @@ var _ = Describe("Add volume command", func() {
 			if extraArg != "" {
 				args = append(args, extraArg)
 			}
-			cmd := clientcmd.NewRepeatableVirtctlCommand(args...)
+			cmd := testing2.NewRepeatableVirtctlCommand(args...)
 			return cmd()
 		}
 

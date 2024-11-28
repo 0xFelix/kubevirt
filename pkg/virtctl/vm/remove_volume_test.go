@@ -21,6 +21,7 @@ package vm_test
 
 import (
 	"errors"
+	testing2 "kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -34,8 +35,6 @@ import (
 
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/kubecli"
-
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 const (
@@ -140,7 +139,7 @@ var _ = Describe("Remove volume command", func() {
 
 	DescribeTable("should fail with missing required or invalid parameters", func(expected string, extraArgs ...string) {
 		args := append([]string{"removevolume"}, extraArgs...)
-		cmd := clientcmd.NewRepeatableVirtctlCommand(args...)
+		cmd := testing2.NewRepeatableVirtctlCommand(args...)
 		Expect(cmd()).To(MatchError(ContainSubstring(expected)))
 	},
 		Entry("no args", "accepts 1 arg(s), received 0"),
@@ -151,7 +150,7 @@ var _ = Describe("Remove volume command", func() {
 	DescribeTable("should report error if call returns error according to option", func(expectFn func(), resourceName string, extraArgs ...string) {
 		expectFn()
 		args := append([]string{"removevolume", vmiName, "--volume-name=" + volumeName}, extraArgs...)
-		cmd := clientcmd.NewRepeatableVirtctlCommand(args...)
+		cmd := testing2.NewRepeatableVirtctlCommand(args...)
 		Expect(cmd()).To(MatchError(ContainSubstring("error removing")))
 		Expect(kvtesting.FilterActions(&virtClient.Fake, "put", resourceName, "removevolume")).To(HaveLen(1))
 	},
@@ -164,7 +163,7 @@ var _ = Describe("Remove volume command", func() {
 	DescribeTable("should call correct endpoint", func(expectFn func(), resourceName string, extraArgs ...string) {
 		expectFn()
 		args := append([]string{"removevolume", vmiName, "--volume-name=" + volumeName}, extraArgs...)
-		cmd := clientcmd.NewRepeatableVirtctlCommand(args...)
+		cmd := testing2.NewRepeatableVirtctlCommand(args...)
 		Expect(cmd()).To(Succeed())
 		Expect(kvtesting.FilterActions(&virtClient.Fake, "put", resourceName, "removevolume")).To(HaveLen(1))
 	},
@@ -177,7 +176,7 @@ var _ = Describe("Remove volume command", func() {
 	It("should fail immediately on non concurrent error", func() {
 		expectVMIEndpointRemoveVolumeError()
 		commandAndArgs := []string{"removevolume", "testvmi", "--volume-name=testvolume"}
-		cmdRemove := clientcmd.NewRepeatableVirtctlCommand(commandAndArgs...)
+		cmdRemove := testing2.NewRepeatableVirtctlCommand(commandAndArgs...)
 		Expect(cmdRemove()).To(MatchError(ContainSubstring("error removing")))
 	})
 
@@ -192,7 +191,7 @@ var _ = Describe("Remove volume command", func() {
 			}
 		})
 		commandAndArgs := []string{"removevolume", "testvmi", "--volume-name=testvolume"}
-		cmdRemove := clientcmd.NewRepeatableVirtctlCommand(commandAndArgs...)
+		cmdRemove := testing2.NewRepeatableVirtctlCommand(commandAndArgs...)
 		Expect(cmdRemove()).To(Succeed())
 	})
 
@@ -201,7 +200,7 @@ var _ = Describe("Remove volume command", func() {
 			return errors.New(concurrentErrorRemove)
 		})
 		commandAndArgs := []string{"removevolume", "testvmi", "--volume-name=testvolume"}
-		cmdRemove := clientcmd.NewRepeatableVirtctlCommand(commandAndArgs...)
+		cmdRemove := testing2.NewRepeatableVirtctlCommand(commandAndArgs...)
 		Expect(cmdRemove()).To(MatchError((ContainSubstring("error removing volume after 15 retries"))))
 	})
 })

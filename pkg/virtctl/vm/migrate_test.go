@@ -21,6 +21,7 @@ package vm_test
 
 import (
 	"context"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -29,8 +30,6 @@ import (
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/kubecli"
-
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 var _ = Describe("Migrate command", func() {
@@ -46,7 +45,7 @@ var _ = Describe("Migrate command", func() {
 	})
 
 	It("should fail with missing input parameters", func() {
-		cmd := clientcmd.NewRepeatableVirtctlCommand("migrate")
+		cmd := testing.NewRepeatableVirtctlCommand("migrate")
 		err := cmd()
 		Expect(err).To(HaveOccurred())
 		Expect(err).Should(MatchError("accepts 1 arg(s), received 0"))
@@ -60,9 +59,9 @@ var _ = Describe("Migrate command", func() {
 
 		var cmd func() error
 		if len(migrateOptions.DryRun) == 0 {
-			cmd = clientcmd.NewRepeatableVirtctlCommand("migrate", vmName)
+			cmd = testing.NewRepeatableVirtctlCommand("migrate", vmName)
 		} else {
-			cmd = clientcmd.NewRepeatableVirtctlCommand("migrate", "--dry-run", vmName)
+			cmd = testing.NewRepeatableVirtctlCommand("migrate", "--dry-run", vmName)
 		}
 
 		Expect(cmd()).To(Succeed())

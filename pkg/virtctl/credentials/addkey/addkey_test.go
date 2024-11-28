@@ -2,6 +2,7 @@ package addkey_test
 
 import (
 	"context"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 	"os"
 	"path/filepath"
 
@@ -25,7 +26,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/apimachinery/patch"
 	"kubevirt.io/kubevirt/pkg/libvmi"
 	"kubevirt.io/kubevirt/pkg/pointer"
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 var _ = Describe("Credentials add-ssh-key", func() {
@@ -452,5 +452,5 @@ func expectAccessCredentialIsSSHWithUser(credential *v1.AccessCredential, user s
 }
 
 func runAddKeyCommand(args ...string) error {
-	return clientcmd.NewRepeatableVirtctlCommand(append([]string{"credentials", "add-ssh-key"}, args...)...)()
+	return testing.NewRepeatableVirtctlCommand(append([]string{"credentials", "add-ssh-key"}, args...)...)()
 }

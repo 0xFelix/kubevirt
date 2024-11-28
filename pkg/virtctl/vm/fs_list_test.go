@@ -22,6 +22,7 @@ package vm_test
 import (
 	"context"
 	"fmt"
+	"kubevirt.io/kubevirt/pkg/virtctl/testing"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -30,8 +31,6 @@ import (
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "kubevirt.io/api/core/v1"
 	"kubevirt.io/client-go/kubecli"
-
-	"kubevirt.io/kubevirt/tests/clientcmd"
 )
 
 var _ = Describe("FS list command", func() {
@@ -47,7 +46,7 @@ var _ = Describe("FS list command", func() {
 	})
 
 	It("should fail with missing input parameters", func() {
-		cmd := clientcmd.NewRepeatableVirtctlCommand("fslist")
+		cmd := testing.NewRepeatableVirtctlCommand("fslist")
 		err := cmd()
 		Expect(err).To(HaveOccurred())
 		Expect(err).Should(MatchError("accepts 1 arg(s), received 0"))
@@ -62,8 +61,8 @@ var _ = Describe("FS list command", func() {
 
 		vmiInterface.EXPECT().FilesystemList(context.Background(), vmName).Return(v1.VirtualMachineInstanceFileSystemList{}, fmt.Errorf("Error listing filesystems of VirtualMachineInstance testvm, an error on the server (\"virtualmachineinstance.kubevirt.io \"testvm\" not found\") has prevented the request from succeeding")).Times(1)
 
-		cmd := clientcmd.NewVirtctlCommand("fslist", vmName)
-		err := cmd.Execute()
+		cmd := testing.NewRepeatableVirtctlCommand("fslist", vmName)
+		err := cmd()
 		Expect(err).To(HaveOccurred())
 		Expect(err).Should(MatchError("Error listing filesystems of VirtualMachineInstance testvm, Error listing filesystems of VirtualMachineInstance testvm, an error on the server (\"virtualmachineinstance.kubevirt.io \"testvm\" not found\") has prevented the request from succeeding"))
 	})
@@ -86,7 +85,7 @@ var _ = Describe("FS list command", func() {
 
 		vmiInterface.EXPECT().FilesystemList(context.Background(), vm.Name).Return(fsList, nil).Times(1)
 
-		cmd := clientcmd.NewVirtctlCommand("fslist", vm.Name)
-		Expect(cmd.Execute()).To(Succeed())
+		cmd := testing.NewRepeatableVirtctlCommand("fslist", vm.Name)
+		Expect(cmd()).To(Succeed())
 	})
 })
