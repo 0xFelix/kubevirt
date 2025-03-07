@@ -30,6 +30,7 @@ import (
 	"kubevirt.io/kubevirt/pkg/virtctl/portforward"
 	"kubevirt.io/kubevirt/pkg/virtctl/reset"
 	"kubevirt.io/kubevirt/pkg/virtctl/scp"
+	"kubevirt.io/kubevirt/pkg/virtctl/serialconnect"
 	"kubevirt.io/kubevirt/pkg/virtctl/softreboot"
 	"kubevirt.io/kubevirt/pkg/virtctl/ssh"
 	"kubevirt.io/kubevirt/pkg/virtctl/templates"
@@ -132,6 +133,7 @@ func NewVirtctlCommandFn() *cobra.Command {
 		create.NewCommand(),
 		credentials.NewCommand(),
 		adm.NewCommand(),
+		serialconnect.NewCommand(),
 		optionsCmd,
 	)
 
